@@ -746,6 +746,16 @@ License: MIT
             <!-- MAIN -->
             <div class="settings-panel active" data-panel="main">
                 <div class="setting">
+                    <span class="setting-label">Global</span>
+                    <button class="btn" id="randomizeBtn"
+                        style="width:100%; height:32px; border-radius:8px; font-size:10px; letter-spacing:1px; text-transform:uppercase;">Randomize</button>
+                </div>
+                <div class="setting">
+                    <span class="setting-label">Global</span>
+                    <button class="btn" id="randomizeBtn"
+                        style="width:100%; height:32px; border-radius:8px; font-size:10px; letter-spacing:1px; text-transform:uppercase;">Randomize</button>
+                </div>
+                <div class="setting">
                     <span class="setting-label">Form</span>
                     <select id="form">
                         <option value="icosahedron">Icosahedron</option>
@@ -1175,6 +1185,15 @@ License: MIT
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+            </div>
+
+            <div class="control-btn" id="mic-btn" title="Microphone Input">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
                 </svg>
             </div>
 
@@ -3804,6 +3823,68 @@ License: MIT
             }
         });
         // ----------------------------------------------------
+
+        // MIC & RANDOMIZE INTEGRATION
+        const micBtn = document.getElementById('mic-btn');
+        const randBtn = document.getElementById('randomizeBtn');
+
+        if (randBtn) {
+            randBtn.addEventListener('click', () => {
+                randomize();
+            });
+        }
+
+        if (micBtn) {
+            micBtn.addEventListener('click', async () => {
+                try {
+                    // Stop other playback
+                    if (audioEl) audioEl.pause();
+                    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
+                    playing = true; // Set playing true so loop runs
+
+                    // Init Audio Context if needed
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioCtx.createAnalyser();
+                        analyser.fftSize = 8192;
+                        analyser.smoothingTimeConstant = 0.0;
+                        analyser.minDecibels = -90;
+                        analyser.maxDecibels = -10;
+                        freqData = new Uint8Array(analyser.frequencyBinCount);
+                        timeData = new Uint8Array(analyser.fftSize);
+                        audio.setFFTInfo(analyser.fftSize, audioCtx.sampleRate);
+                    }
+                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const micSource = audioCtx.createMediaStreamSource(stream);
+
+                    // Disconnect previous node if we can track it, or just connect mic
+                    // Ideally we'd manage connections better, but for this prototype:
+                    if (sourceNode) {
+                        try { sourceNode.disconnect(); } catch (e) { }
+                    }
+
+                    micSource.connect(analyser);
+                    // DO NOT connect to destination (speakers) to prevent feedback!
+
+                    // Update UI
+                    document.getElementById('track-title').textContent = "Microphone Input";
+                    document.getElementById('track-artist').textContent = "Live Audio Reactive";
+                    playIconPlayer.style.display = 'none';
+                    pauseIconPlayer.style.display = 'block';
+
+                    // Disable AutoPilot if it was on
+                    config.autoPilot = false;
+                    const toggle = document.getElementById('toggleAutoPilot');
+                    if (toggle) toggle.classList.remove('active');
+
+                } catch (err) {
+                    console.error("Mic Error:", err);
+                    alert("Could not access microphone. Please allow permissions.");
+                }
+            });
+        }
 
         // Resize
         window.addEventListener('resize', () => {
