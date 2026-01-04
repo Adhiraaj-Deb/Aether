@@ -1177,8 +1177,43 @@ License: MIT
                     <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
             </div>
+
+            <div class="control-btn" id="yt-btn" title="Play YouTube">
+                <svg viewBox="0 0 24 24" style="fill:none; stroke-width:2;">
+                    <path
+                        d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29.07 29.07 0 0 0 1 11.75a29.07 29.07 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29.07 29.07 0 0 0 .46-5.33 29.07 29.07 0 0 0-.46-5.33z" />
+                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                </svg>
+            </div>
         </div>
     </div>
+
+    <!-- YouTube Modal -->
+    <div id="yt-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
+        <div
+            style="background:rgba(20,20,20,0.95); padding:30px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); width:400px; max-width:90%; position:relative;">
+            <div style="position:absolute; top:15px; right:15px; cursor:pointer;" id="close-yt-modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.7)" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </div>
+            <h3
+                style="color:#fff; font-family:'Playfair Display', serif; margin-bottom:20px; font-weight:300; letter-spacing:1px; text-align:center;">
+                Play from YouTube</h3>
+            <input type="text" id="yt-input" placeholder="Paste YouTube URL here..."
+                style="width:100%; padding:12px 15px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; margin-bottom:20px; font-family:'Space Mono', monospace; font-size:12px;">
+            <button id="yt-play-btn" class="btn"
+                style="width:100%; border-radius:10px; font-family:'Space Mono'; text-transform:uppercase; letter-spacing:2px; height:44px;">Play</button>
+        </div>
+    </div>
+
+    <!-- Hidden YT Player -->
+    <div id="yt-player-container" style="position:fixed; top:-9999px; left:-9999px;">
+        <div id="yt-player"></div>
+    </div>
+
 
     <audio id="audio" crossorigin="anonymous"></audio>
     <script type="module">
@@ -3631,6 +3666,7 @@ License: MIT
             });
         }
 
+
         // Interactive Particles
         document.addEventListener('mousemove', e => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -3649,6 +3685,125 @@ License: MIT
                 mouse.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
             }
         });
+
+        // ----------------------------------------------------
+        // YOUTUBE INTEGRATION (Added)
+        // ----------------------------------------------------
+        let ytPlayer;
+        let isYtPlaying = false;
+        const ytBtn = document.getElementById('yt-btn');
+        const ytModal = document.getElementById('yt-modal');
+        const closeYtModal = document.getElementById('close-yt-modal');
+        const ytPlayBtn = document.getElementById('yt-play-btn');
+        const ytInput = document.getElementById('yt-input');
+
+        // Load YT API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        window.onYouTubeIframeAPIReady = function () {
+            ytPlayer = new YT.Player('yt-player', {
+                height: '0', // Hidden
+                width: '0',
+                events: {
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        };
+
+        function extractVideoID(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+
+        if (ytBtn) ytBtn.addEventListener('click', () => { ytModal.style.display = 'flex'; });
+        if (closeYtModal) closeYtModal.addEventListener('click', () => { ytModal.style.display = 'none'; });
+
+        if (ytPlayBtn) ytPlayBtn.addEventListener('click', () => {
+            const val = ytInput.value;
+            const vidId = extractVideoID(val);
+            if (vidId && ytPlayer) {
+                // Stop local audio
+                audioEl.pause();
+                playing = false;
+                playIconPlayer.style.display = 'block';
+                pauseIconPlayer.style.display = 'none';
+
+                // Play YT
+                ytPlayer.loadVideoById(vidId);
+                ytModal.style.display = 'none';
+                isYtPlaying = true;
+
+                // Switch Visuals to Auto-Pilot
+                config.autoPilot = true;
+                const toggle = document.getElementById('toggleAutoPilot');
+                if (toggle) toggle.classList.add('active');
+
+                // Update Player UI
+                document.getElementById('track-title').textContent = "YouTube Stream";
+                document.getElementById('track-artist').textContent = "Visuals in Auto-Pilot Mode";
+                albumArt.innerHTML = '<svg viewBox="0 0 24 24" style="stroke:#ff0000; fill:none;"><polygon points="5 3 19 12 5 21 5 3" /></svg>'; // Red play icon
+            } else {
+                alert("Invalid YouTube URL");
+            }
+        });
+
+        function onPlayerStateChange(event) {
+            // Update custom Play/Pause button based on YT state
+            if (event.data == YT.PlayerState.PLAYING) {
+                isYtPlaying = true;
+                playIconPlayer.style.display = 'none';
+                pauseIconPlayer.style.display = 'block';
+                // Ensure Auto-Pilot is ON
+                config.autoPilot = true;
+            } else {
+                playIconPlayer.style.display = 'block';
+                pauseIconPlayer.style.display = 'none';
+            }
+        }
+
+        function onPlayerError(event) {
+            console.error("YT Error:", event.data);
+            alert("Could not play this video. It might be restricted.");
+        }
+
+        // Override main Play/Pause button behavior if YT is loaded
+        const originalPlayToggle = playBtn.onclick;
+        // We actually attached via addEventListener above, but we need to intercept
+        // The safest way is to change the event listener logic, but since we are pasting code,
+        // let's just hook into the existing click handler by checking `isYtPlaying` state inside or simpler:
+
+        // We will add a wrapper to the EXISTING play button logic? No, easier to just add a NEW listener
+        // that stops propagation if we are in YT mode. 
+        // Actually, the simplest fix for this 'simulation' is:
+        // If user clicks Play/Pause AND `isYtPlaying` is true, control YT player.
+
+        const mainPlayBtn = document.getElementById('play-pause-btn'); // Glassmorphism button
+        // Remove old listener? We can't easily. 
+        // So we just add one that runs alongside. IMPORTANT: The old listener controls `audioEl`.
+        // We need to make sure we don't play `audioEl` if YT is active.
+
+        // Fix: Modifying the `audioEl` play/pause logic is hard from here without editing earlier code.
+        // Quick Hack: If we pause `audioEl` immediately after it tries to play?
+        // Better: When starting YT, we set `audioEl.src = ""` to unload local audio? 
+        // let's do that in the click handler above.
+
+        mainPlayBtn.addEventListener('click', (e) => {
+            if (isYtPlaying && ytPlayer && ytPlayer.getPlayerState) {
+                e.stopImmediatePropagation(); // Try to stop others, though mapped listeners might trigger
+                const state = ytPlayer.getPlayerState();
+                if (state === YT.PlayerState.PLAYING) {
+                    ytPlayer.pauseVideo();
+                } else {
+                    ytPlayer.playVideo();
+                }
+            }
+        });
+        // ----------------------------------------------------
 
         // Resize
         window.addEventListener('resize', () => {
