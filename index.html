@@ -682,6 +682,11 @@ License: MIT
                 <div class="section-title">Visual Effects</div>
                 <div class="settings-grid">
                     <div class="setting">
+                        <span class="setting-label">Global</span>
+                        <button class="btn" id="randomizeBtnModal"
+                            style="width:100%; height:32px; border-radius:8px; font-size:10px; letter-spacing:1px; text-transform:uppercase;">Randomize</button>
+                    </div>
+                    <div class="setting">
                         <span class="setting-label">VFX Mode</span>
                         <select id="vfxMode">
                             <option value="liquid-crystal">Liquid Crystal</option>
@@ -3827,12 +3832,10 @@ License: MIT
         // MIC & RANDOMIZE INTEGRATION
         const micBtn = document.getElementById('mic-btn');
         const randBtn = document.getElementById('randomizeBtn');
+        const randBtnModal = document.getElementById('randomizeBtnModal');
 
-        if (randBtn) {
-            randBtn.addEventListener('click', () => {
-                randomize();
-            });
-        }
+        if (randBtn) { randBtn.addEventListener('click', () => { randomize(); }); }
+        if (randBtnModal) { randBtnModal.addEventListener('click', () => { randomize(); }); }
 
         if (micBtn) {
             micBtn.addEventListener('click', async () => {
