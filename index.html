@@ -628,28 +628,47 @@ License: MIT
         }
 
         /* Mobile Landscape Optimization */
-        @media (max-height: 500px) and (orientation: landscape) {
+        /* Mobile Landscape Optimization */
+        @media (max-height: 600px) and (orientation: landscape) {
             #music-player {
-                transform: translateX(-50%) scale(0.65);
+                transform: translateX(-50%) scale(0.55);
                 transform-origin: bottom center;
-                bottom: 10px;
-                padding: 10px 16px;
+                bottom: 5px;
+                padding: 8px 12px;
                 width: auto;
-                min-width: 340px;
+                min-width: unset;
+                max-width: 90%;
             }
 
             #music-player:hover {
-                transform: translateX(-50%) scale(0.65) translateY(-4px);
+                transform: translateX(-50%) scale(0.55) translateY(-2px);
             }
 
             .album-art {
-                width: 50px;
-                height: 50px;
+                width: 40px;
+                height: 40px;
             }
 
             .album-art svg {
-                width: 24px;
-                height: 24px;
+                width: 20px;
+                height: 20px;
+            }
+
+            .player-info {
+                display: none;
+                /* Hide text to save extreme space if needed, or keep? User didn't say hide. */
+                /* Let's keep it but make it smaller via scale */
+                display: block;
+                margin-right: 10px;
+            }
+
+            .track-title {
+                font-size: 14px;
+            }
+
+            .track-artist {
+                font-size: 10px;
+                margin-bottom: 4px;
             }
         }
     </style>
